@@ -6,8 +6,13 @@ import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import * as CANNON from "cannon-es";
 import scss from "./About.module.scss";
 
+interface Car {
+  mesh: THREE.Group;
+  body: CANNON.Body;
+}
+
 const About = () => {
-  const mountRef = useRef(null);
+  const mountRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const scene = new THREE.Scene();
@@ -188,7 +193,7 @@ const About = () => {
     const treeMaterial = new THREE.MeshStandardMaterial({ color: 0x8b4513 });
     const foliageMaterial = new THREE.MeshStandardMaterial({ color: 0x228b22 });
 
-    function createTree(x, z) {
+    function createTree(x: number, z: number) {
       const tree = new THREE.Group();
       const trunk = new THREE.Mesh(treeGeometry, treeMaterial);
       const foliage = new THREE.Mesh(foliageGeometry, foliageMaterial);
@@ -209,7 +214,7 @@ const About = () => {
     const rockGeometry = new THREE.DodecahedronGeometry(2, 0);
     const rockMaterial = new THREE.MeshStandardMaterial({ color: 0x808080 });
 
-    function createRock(x, z, scale) {
+    function createRock(x: number, z: number, scale: number) {
       const rock = new THREE.Mesh(rockGeometry, rockMaterial);
       rock.position.set(x, scale, z);
       rock.scale.set(scale, scale, scale);
@@ -225,7 +230,7 @@ const About = () => {
     }
 
     // Player's car
-    let car, carBody;
+    let car: THREE.Object3D, carBody: CANNON.Body;
     const loader = new GLTFLoader();
     loader.load("/models/car/Mustang.glb", (gltf) => {
       car = gltf.scene;
@@ -241,7 +246,7 @@ const About = () => {
     });
 
     // Other cars
-    const otherCars = [];
+    const otherCars: Car[] = [];
     for (let i = 0; i < 5; i++) {
       loader.load("/models/car/Mustang.glb", (gltf) => {
         const otherCar = gltf.scene;
@@ -256,27 +261,54 @@ const About = () => {
         const otherCarBody = new CANNON.Body({
           mass: 1500,
           shape: new CANNON.Box(new CANNON.Vec3(1.5, 0.5, 3)),
-          position: otherCar.position,
+          position: new CANNON.Vec3(
+            otherCar.position.x,
+            otherCar.position.y,
+            otherCar.position.z
+          ),
         });
+
         world.addBody(otherCarBody);
         otherCars.push({ mesh: otherCar, body: otherCarBody });
       });
     }
 
-    const keys = { KeyW: false, KeyS: false, KeyA: false, KeyD: false };
+    interface Keys {
+      KeyW: boolean;
+      KeyS: boolean;
+      KeyA: boolean;
+      KeyD: boolean;
+    }
 
-    const handleKeyDown = (event) => {
+    interface EngineSound {
+      play: () => void;
+      isPlaying: boolean;
+    }
+
+    // Если engineSound уже существует, не объявляем её повторно
+    if (!engineSound) {
+      const engineSound: EngineSound = {
+        play: () => {
+          /* воспроизведение звука */
+        },
+        isPlaying: false,
+      };
+    }
+
+    const keys: Keys = { KeyW: false, KeyS: false, KeyA: false, KeyD: false };
+
+    const handleKeyDown = (event: KeyboardEvent): void => {
       if (keys.hasOwnProperty(event.code)) {
-        keys[event.code] = true;
+        keys[event.code as keyof Keys] = true;
         if (event.code === "KeyW" && !engineSound.isPlaying) {
           engineSound.play();
         }
       }
     };
 
-    const handleKeyUp = (event) => {
+    const handleKeyUp = (event: KeyboardEvent): void => {
       if (keys.hasOwnProperty(event.code)) {
-        keys[event.code] = false;
+        keys[event.code as keyof Keys] = false;
         if (event.code === "KeyW" && engineSound.isPlaying) {
           engineSound.stop();
         }
